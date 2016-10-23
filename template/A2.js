@@ -7,6 +7,8 @@
 
 // we aren't allowed to use the built-in THREEJS helpers so I made my own, hahaha.
 var channel = 0;
+var rorationOffsetLinkOne = 0;
+var rotationOffsetLinkTwo = 0;
 
 function toRadians (angle) {
   return angle * (Math.PI / 180);
@@ -66,11 +68,65 @@ function getScaleMatrix(x,y,z) {
 
 //TODO: 
 
-function generateTentacle(id) {
+function generateTentacleLinkOneMatrix(id) {
+  var parentSocket;
+  var rotationMatrix;
+  var translationMatrix;
+  if (id == 1) {
+    parentSocket = octopusSocket1Matrix;
+    rotationMatrix = getCompositeRotation(0,45,90);
+    translationMatrix = getTranslationMatrix(-baseTentacleHeight/4.0,0,baseTentacleHeight/4.0);
+  }
+  else if (id == 2) {
+    parentSocket = octopusSocket2Matrix;
+    rotationMatrix = getCompositeRotation(0,135,90);
+    translationMatrix = getTranslationMatrix(baseTentacleHeight/4.0,0,baseTentacleHeight/4.0);
+  }
+  else if (id == 3) {
+    parentSocket = octopusSocket3Matrix;
+    rotationMatrix = getCompositeRotation(0,-45,90);
+    translationMatrix = getTranslationMatrix(-baseTentacleHeight/4.0,0,-baseTentacleHeight/4.0);
+  }
+  else if (id == 4) {
+    parentSocket = octopusSocket4Matrix;
+    rotationMatrix = getCompositeRotation(0,-135,90);
+    translationMatrix = getTranslationMatrix(baseTentacleHeight/4.0, 0, -baseTentacleHeight/4.0);
+  }
+  else {
+    return baseTentacleMatrix;
+  }
+  return new THREE.Matrix4().multiplyMatrices(parentSocket, baseTentacleMatrix).multiply(translationMatrix).multiply(rotationMatrix);
   // 1. -x, 0, z
   // 2. x, 0, z
   // 3. -x, 0, -z
   // 4. x, 0, -z
+}
+
+function generateTentacleLinkTwoMatrix(id) {
+  var parentTentacle;
+  var translationMatrix = getTranslationMatrix(0, baseTentacleHeight, 0);
+  var rotationMatrix;
+  if (channel != 0) {
+    rotationMatrix = getTranslationMatrix(-baseTentacleHeight/2.0,-baseTentacleHeight/2.0,0).multiply(getCompositeRotation(rotationOffset,0,rotationOffset));
+  } else {
+    rotationMatrix = new THREE.Matrix4();
+  }
+  if(id == 1) {
+    parentTentacle = t_01_l_01_Matrix;
+  }
+  else if (id == 2) {
+    parentTentacle = t_02_l_01_Matrix;
+  }
+  else if (id == 3) {
+    parentTentacle = t_03_l_01_Matrix;
+  }
+  else if (id == 4) {
+    parentTentacle = t_04_l_01_Matrix;
+  }
+  else {
+    return baseTentacleMatrix;
+  }
+  return new THREE.Matrix4().multiplyMatrices(parentTentacle, baseTentacleMatrix).multiply(translationMatrix).multiply(rotationMatrix);
 }
 
 // ASSIGNMENT-SPECIFIC API EXTENSION
@@ -287,6 +343,8 @@ var tentacleSocket4Matrix = new THREE.Matrix4().set(
   0.0,0.0,1.0,-2.4, 
   0.0,0.0,0.0,1.0
   );
+
+var jointGeometry = new THREE.SphereGeometry(10, 16, 16);
 var octopusSocket1Matrix = new THREE.Matrix4().multiplyMatrices(octopusMatrix.value, tentacleSocket1Matrix);
 var octopusSocket2Matrix = new THREE.Matrix4().multiplyMatrices(octopusMatrix.value, tentacleSocket2Matrix);
 var octopusSocket3Matrix = new THREE.Matrix4().multiplyMatrices(octopusMatrix.value, tentacleSocket3Matrix);
@@ -294,10 +352,10 @@ var octopusSocket4Matrix = new THREE.Matrix4().multiplyMatrices(octopusMatrix.va
 var tentacleSocketGeometry = new THREE.Geometry();
 tentacleSocketGeometry.vertices.push(new THREE.Vector3(0, 0, 0));
 var tentacleSocketMaterial = new THREE.PointCloudMaterial( { size: 10, sizeAttenuation: false, color:0xff0000} );
-var tentacle1Socket = new THREE.PointCloud( tentacleSocketGeometry, tentacleSocketMaterial );
-var tentacle2Socket = new THREE.PointCloud( tentacleSocketGeometry, tentacleSocketMaterial );
-var tentacle3Socket = new THREE.PointCloud( tentacleSocketGeometry, tentacleSocketMaterial );
-var tentacle4Socket = new THREE.PointCloud( tentacleSocketGeometry, tentacleSocketMaterial );
+var tentacle1Socket = new THREE.PointCloud( tentacleSocketGeometry, normalMaterial );
+var tentacle2Socket = new THREE.PointCloud( tentacleSocketGeometry, normalMaterial );
+var tentacle3Socket = new THREE.PointCloud( tentacleSocketGeometry, normalMaterial );
+var tentacle4Socket = new THREE.PointCloud( tentacleSocketGeometry, normalMaterial );
 tentacle1Socket.setMatrix(octopusSocket1Matrix);
 tentacle2Socket.setMatrix(octopusSocket2Matrix);
 tentacle3Socket.setMatrix(octopusSocket3Matrix);
@@ -313,144 +371,72 @@ scene.add(tentacle4Socket);
 //Example of tentacle's links
 
 var baseTentacleHeight = 3;
-
-// TENTACLE 1
-
-var tentacle_01Link_01G = new THREE.CylinderGeometry(0.35,0.45,baseTentacleHeight,64);
-var tentacle01_Link01Matrix = new THREE.Matrix4().set(
+var baseTentacleMatrix = new THREE.Matrix4().set(
  1.0,0.0,0.0,0.0, 
   0.0,1.0,0.0,0.0, 
  0.0,0.0,1.0,0.0, 
   0.0,0.0,0.0,1.0
 );
-var t_01_l_01_Matrix = new THREE.Matrix4().multiplyMatrices(octopusSocket1Matrix, tentacle01_Link01Matrix);
-// ROTATE X by 90 degrees
-var t1rotationMatrix = getCompositeRotation(0,45,90);
-var t1l1translationMatrix = getTranslationMatrix(-baseTentacleHeight/4.0,0,baseTentacleHeight/4.0);
-t_01_l_01_Matrix.multiply(t1l1translationMatrix);
-t_01_l_01_Matrix.multiply(t1rotationMatrix);
-var tentacle_01Link_01 = new THREE.Mesh(tentacle_01Link_01G,normalMaterial);
+var tentacleL01Geom = new THREE.CylinderGeometry(0.35,0.45,baseTentacleHeight,64);
+var tentacleL02Geom = new THREE.CylinderGeometry(0.01,0.30,3,64);
+
+// TENTACLE 1
+
+var t_01_l_01_Matrix = generateTentacleLinkOneMatrix(1);
+var tentacle_01Link_01 = new THREE.Mesh(tentacleL01Geom,normalMaterial);
 tentacle_01Link_01.setMatrix(t_01_l_01_Matrix);
 scene.add(tentacle_01Link_01);
 
 // T1 LINK TWO 
 
-var tentacle_01Link_02G = new THREE.CylinderGeometry(0.15,0.30,3,64);
-var tentacle_01Link_02GMatrix = new THREE.Matrix4().set(
-  1.0,0.0,0.0,0.0, 
-  0.0,1.0,0.0,0.0, 
-  0.0,0.0,1.0,0.0, 
-  0.0,0.0,0.0,1.0
-  );
-var t_01_l_02_Matrix = new THREE.Matrix4().multiplyMatrices(t_01_l_01_Matrix, tentacle_01Link_02GMatrix);
-var t1l2translationMatrix = getTranslationMatrix(0,baseTentacleHeight,0);
-t_01_l_02_Matrix.multiply(t1l2translationMatrix);
-var tentacle_01Link_02 = new THREE.Mesh(tentacle_01Link_02G,normalMaterial);
+var t_01_l_02_Matrix = generateTentacleLinkTwoMatrix(1);
+var tentacle_01Link_02 = new THREE.Mesh(tentacleL02Geom,normalMaterial);
 tentacle_01Link_02.setMatrix(t_01_l_02_Matrix);
 scene.add(tentacle_01Link_02);
 
-
 // TENTACLE 2
 
-var tentacle_02Link_01G = new THREE.CylinderGeometry(0.35,0.45,baseTentacleHeight,64);
-var tentacle02_Link01Matrix = new THREE.Matrix4().set(
- 1.0,0.0,0.0,0.0, 
-  0.0,1.0,0.0,0.0, 
- 0.0,0.0,1.0,0.0, 
-  0.0,0.0,0.0,1.0
-);
-var t_02_l_01_Matrix = new THREE.Matrix4().multiplyMatrices(octopusSocket2Matrix, tentacle02_Link01Matrix);
-// ROTATE X by 90 degrees
-var t2rotationMatrix = getCompositeRotation(0,135,90);
-var t2l1translationMatrix = getTranslationMatrix(baseTentacleHeight/4.0,0,baseTentacleHeight/4.0);
-t_02_l_01_Matrix.multiply(t2l1translationMatrix);
-t_02_l_01_Matrix.multiply(t2rotationMatrix);
-var tentacle_02Link_01 = new THREE.Mesh(tentacle_01Link_01G,normalMaterial);
+var t_02_l_01_Matrix = generateTentacleLinkOneMatrix(2);
+var tentacle_02Link_01 = new THREE.Mesh(tentacleL01Geom,normalMaterial);
 tentacle_02Link_01.setMatrix(t_02_l_01_Matrix);
 scene.add(tentacle_02Link_01);
 
 // T2 LINK TWO 
-var tentacle_02Link_02G = new THREE.CylinderGeometry(0.15,0.30,3,64);
-var tentacle_02Link_02GMatrix = new THREE.Matrix4().set(
-  1.0,0.0,0.0,0.0, 
-  0.0,1.0,0.0,0.0, 
-  0.0,0.0,1.0,0.0, 
-  0.0,0.0,0.0,1.0
-  );
-var t_02_l_02_Matrix = new THREE.Matrix4().multiplyMatrices(t_02_l_01_Matrix, tentacle_02Link_02GMatrix);
-var t2l2translationMatrix = getTranslationMatrix(0,baseTentacleHeight,0);
-t_02_l_02_Matrix.multiply(t2l2translationMatrix);
-var tentacle_02Link_02 = new THREE.Mesh(tentacle_02Link_02G,normalMaterial);
+
+var t_02_l_02_Matrix =  generateTentacleLinkTwoMatrix(2);
+var tentacle_02Link_02 = new THREE.Mesh(tentacleL02Geom,normalMaterial);
 tentacle_02Link_02.setMatrix(t_02_l_02_Matrix);
 scene.add(tentacle_02Link_02);
 
 
 // TENTACLE 3
 
-var tentacle_03Link_01G = new THREE.CylinderGeometry(0.35,0.45,baseTentacleHeight,64);
-var tentacle03_Link01Matrix = new THREE.Matrix4().set(
- 1.0,0.0,0.0,0.0, 
-  0.0,1.0,0.0,0.0, 
- 0.0,0.0,1.0,0.0, 
-  0.0,0.0,0.0,1.0
-);
-var t_03_l_01_Matrix = new THREE.Matrix4().multiplyMatrices(octopusSocket3Matrix, tentacle03_Link01Matrix);
-// ROTATE X by 90 degrees
-var t3rotationMatrix = getCompositeRotation(0,-45,90);
-var t3l1translationMatrix = getTranslationMatrix(-baseTentacleHeight/4.0,0,-baseTentacleHeight/4.0);
-t_03_l_01_Matrix.multiply(t3l1translationMatrix);
-t_03_l_01_Matrix.multiply(t3rotationMatrix);
-var tentacle_03Link_01 = new THREE.Mesh(tentacle_03Link_01G,normalMaterial);
+var t_03_l_01_Matrix = generateTentacleLinkOneMatrix(3);
+var tentacle_03Link_01 = new THREE.Mesh(tentacleL01Geom,normalMaterial);
 tentacle_03Link_01.setMatrix(t_03_l_01_Matrix);
 scene.add(tentacle_03Link_01);
 
 // T3 LINK TWO 
-var tentacle_03Link_02G = new THREE.CylinderGeometry(0.15,0.30,3,64);
-var tentacle_03Link_02GMatrix = new THREE.Matrix4().set(
-  1.0,0.0,0.0,0.0, 
-  0.0,1.0,0.0,0.0, 
-  0.0,0.0,1.0,0.0, 
-  0.0,0.0,0.0,1.0
-  );
-var t_03_l_02_Matrix = new THREE.Matrix4().multiplyMatrices(t_03_l_01_Matrix, tentacle_03Link_02GMatrix);
-var t3l2translationMatrix = getTranslationMatrix(0,baseTentacleHeight,0);
-t_03_l_02_Matrix.multiply(t3l2translationMatrix);
-var tentacle_03Link_02 = new THREE.Mesh(tentacle_03Link_02G,normalMaterial);
+
+var t_03_l_02_Matrix = generateTentacleLinkTwoMatrix(3);
+var tentacle_03Link_02 = new THREE.Mesh(tentacleL02Geom,normalMaterial);
 tentacle_03Link_02.setMatrix(t_03_l_02_Matrix);
 scene.add(tentacle_03Link_02);
 
 
 // TENTACLE 4
 
-var tentacle_04Link_01G = new THREE.CylinderGeometry(0.35,0.45,baseTentacleHeight,64);
-var tentacle04_Link01Matrix = new THREE.Matrix4().set(
- 1.0,0.0,0.0,0.0, 
-  0.0,1.0,0.0,0.0, 
- 0.0,0.0,1.0,0.0, 
-  0.0,0.0,0.0,1.0
-);
-var t_04_l_01_Matrix = new THREE.Matrix4().multiplyMatrices(octopusSocket4Matrix, tentacle04_Link01Matrix);
-// ROTATE X by 90 degrees
-var t4rotationMatrix = getCompositeRotation(0,-135,90);
-var t4l1translationMatrix = getTranslationMatrix(baseTentacleHeight/4.0,0,-baseTentacleHeight/4.0);
-t_04_l_01_Matrix.multiply(t4l1translationMatrix);
-t_04_l_01_Matrix.multiply(t4rotationMatrix);
-var tentacle_04Link_01 = new THREE.Mesh(tentacle_04Link_01G,normalMaterial);
+//var tentacle_04Link_01G = new THREE.CylinderGeometry(0.35,0.45,baseTentacleHeight,64);
+
+var t_04_l_01_Matrix = generateTentacleLinkOneMatrix(4);
+var tentacle_04Link_01 = new THREE.Mesh(tentacleL01Geom,normalMaterial);
 tentacle_04Link_01.setMatrix(t_04_l_01_Matrix);
 scene.add(tentacle_04Link_01);
 
-// T3 LINK TWO 
-var tentacle_04Link_02G = new THREE.CylinderGeometry(0.15,0.30,3,64);
-var tentacle_04Link_02GMatrix = new THREE.Matrix4().set(
-  1.0,0.0,0.0,0.0, 
-  0.0,1.0,0.0,0.0, 
-  0.0,0.0,1.0,0.0, 
-  0.0,0.0,0.0,1.0
-  );
-var t_04_l_02_Matrix = new THREE.Matrix4().multiplyMatrices(t_04_l_01_Matrix, tentacle_04Link_02GMatrix);
-var t4l2translationMatrix = getTranslationMatrix(0,baseTentacleHeight,0);
-t_04_l_02_Matrix.multiply(t4l2translationMatrix);
-var tentacle_04Link_02 = new THREE.Mesh(tentacle_04Link_02G,normalMaterial);
+// T4 LINK TWO 
+
+var t_04_l_02_Matrix = generateTentacleLinkTwoMatrix(4);
+var tentacle_04Link_02 = new THREE.Mesh(tentacleL02Geom,normalMaterial);
 tentacle_04Link_02.setMatrix(t_04_l_02_Matrix);
 scene.add(tentacle_04Link_02);
 
@@ -467,10 +453,28 @@ function updateBody() {
   {
     //add poses here:
     case 0: 
+      rotationOffset = 0;
+      t_01_l_02_Matrix = generateTentacleLinkTwoMatrix(1);
+      t_02_l_02_Matrix = generateTentacleLinkTwoMatrix(2);
+      t_03_l_02_Matrix = generateTentacleLinkTwoMatrix(3);
+      t_04_l_02_Matrix = generateTentacleLinkTwoMatrix(4);
+      tentacle_01Link_02.setMatrix(t_01_l_02_Matrix);
+      tentacle_02Link_02.setMatrix(t_02_l_02_Matrix);
+      tentacle_03Link_02.setMatrix(t_03_l_02_Matrix);
+      tentacle_04Link_02.setMatrix(t_04_l_02_Matrix);
       // DEFAULT "T-POSE"
       break;
 
     case 1:
+      rotationOffset = 90;
+      t_01_l_02_Matrix = generateTentacleLinkTwoMatrix(1);
+      t_02_l_02_Matrix = generateTentacleLinkTwoMatrix(2);
+      t_03_l_02_Matrix = generateTentacleLinkTwoMatrix(3);
+      t_04_l_02_Matrix = generateTentacleLinkTwoMatrix(4);
+      tentacle_01Link_02.setMatrix(t_01_l_02_Matrix);
+      tentacle_02Link_02.setMatrix(t_02_l_02_Matrix);
+      tentacle_03Link_02.setMatrix(t_03_l_02_Matrix);
+      tentacle_04Link_02.setMatrix(t_04_l_02_Matrix);
       // SPIDER MODE
       break;
 
@@ -502,6 +506,7 @@ function checkKeyboard() {
   {
     if (keyboard.pressed(i.toString()))
     {
+      console.log(i.toString());
       channel = i;
       break;
     }
