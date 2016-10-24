@@ -7,7 +7,7 @@
 
 // we aren't allowed to use the built-in THREEJS helpers so I made my own, hahaha.
 var channel = 0;
-var rorationOffsetLinkOne = 0;
+var rotationOffsetLinkOne = 0;
 var rotationOffsetLinkTwo = 0;
 
 function toRadians (angle) {
@@ -72,6 +72,12 @@ function generateTentacleLinkOneMatrix(id) {
   var parentSocket;
   var rotationMatrix;
   var translationMatrix;
+  var rotationOffsetMatrix;
+  if (rotationOffsetLinkOne != 0) {
+    rotationOffsetMatrix = getTranslationMatrix(baseTentacleHeight/3.0,0, 0).multiply(getCompositeRotation(rotationOffsetLinkOne,0,rotationOffsetLinkOne));
+  } else {
+    rotationOffsetMatrix  = new THREE.Matrix4();
+  }
   if (id == 1) {
     parentSocket = octopusSocket1Matrix;
     rotationMatrix = getCompositeRotation(0,45,90);
@@ -95,7 +101,7 @@ function generateTentacleLinkOneMatrix(id) {
   else {
     return baseTentacleMatrix;
   }
-  return new THREE.Matrix4().multiplyMatrices(parentSocket, baseTentacleMatrix).multiply(translationMatrix).multiply(rotationMatrix);
+  return new THREE.Matrix4().multiplyMatrices(parentSocket, baseTentacleMatrix).multiply(translationMatrix).multiply(rotationMatrix).multiply(rotationOffsetMatrix);
   // 1. -x, 0, z
   // 2. x, 0, z
   // 3. -x, 0, -z
@@ -105,11 +111,11 @@ function generateTentacleLinkOneMatrix(id) {
 function generateTentacleLinkTwoMatrix(id) {
   var parentTentacle;
   var translationMatrix = getTranslationMatrix(0, baseTentacleHeight, 0);
-  var rotationMatrix;
-  if (channel != 0) {
-    rotationMatrix = getTranslationMatrix(-baseTentacleHeight/2.0,-baseTentacleHeight/2.0,0).multiply(getCompositeRotation(rotationOffset,0,rotationOffset));
+  var rotationOffsetMatrix;
+  if (rotationOffsetLinkTwo != 0) {
+    rotationOffsetMatrix = getTranslationMatrix(-baseTentacleHeight/2.0,-baseTentacleHeight/2.0,0).multiply(getCompositeRotation(rotationOffsetLinkTwo,0,rotationOffsetLinkTwo));
   } else {
-    rotationMatrix = new THREE.Matrix4();
+    rotationOffsetMatrix = new THREE.Matrix4();
   }
   if(id == 1) {
     parentTentacle = t_01_l_01_Matrix;
@@ -126,7 +132,7 @@ function generateTentacleLinkTwoMatrix(id) {
   else {
     return baseTentacleMatrix;
   }
-  return new THREE.Matrix4().multiplyMatrices(parentTentacle, baseTentacleMatrix).multiply(translationMatrix).multiply(rotationMatrix);
+  return new THREE.Matrix4().multiplyMatrices(parentTentacle, baseTentacleMatrix).multiply(translationMatrix).multiply(rotationOffsetMatrix);
 }
 
 // ASSIGNMENT-SPECIFIC API EXTENSION
@@ -440,61 +446,117 @@ var tentacle_04Link_02 = new THREE.Mesh(tentacleL02Geom,normalMaterial);
 tentacle_04Link_02.setMatrix(t_04_l_02_Matrix);
 scene.add(tentacle_04Link_02);
 
+function updateFirstLink() {
+  t_01_l_01_Matrix = generateTentacleLinkOneMatrix(1);
+  t_02_l_01_Matrix = generateTentacleLinkOneMatrix(2);
+  t_03_l_01_Matrix = generateTentacleLinkOneMatrix(3);
+  t_04_l_01_Matrix = generateTentacleLinkOneMatrix(4);
+  tentacle_01Link_01.setMatrix(t_01_l_01_Matrix);
+  tentacle_02Link_01.setMatrix(t_02_l_01_Matrix);
+  tentacle_03Link_01.setMatrix(t_03_l_01_Matrix);
+  tentacle_04Link_01.setMatrix(t_04_l_01_Matrix);
+}
+
+function updateSecondLink() {
+  t_01_l_02_Matrix = generateTentacleLinkTwoMatrix(1);
+  t_02_l_02_Matrix = generateTentacleLinkTwoMatrix(2);
+  t_03_l_02_Matrix = generateTentacleLinkTwoMatrix(3);
+  t_04_l_02_Matrix = generateTentacleLinkTwoMatrix(4);
+  
+  tentacle_01Link_02.setMatrix(t_01_l_02_Matrix);
+  tentacle_02Link_02.setMatrix(t_02_l_02_Matrix);
+  tentacle_03Link_02.setMatrix(t_03_l_02_Matrix);
+  tentacle_04Link_02.setMatrix(t_04_l_02_Matrix);
+
+}
+
 
 
 
 
 //APPLY DIFFERENT EFFECTS TO DIFFERNET CHANNELS
 
-var clock = new THREE.Clock(true);
+var clock = new THREE.Clock();
+clock.start();
+var old_T;
+var animThresh = 1.0;
+var onTheClock = false;
 function updateBody() {
 
   switch(channel)
   {
     //add poses here:
     case 0: 
-      rotationOffset = 0;
-      t_01_l_02_Matrix = generateTentacleLinkTwoMatrix(1);
-      t_02_l_02_Matrix = generateTentacleLinkTwoMatrix(2);
-      t_03_l_02_Matrix = generateTentacleLinkTwoMatrix(3);
-      t_04_l_02_Matrix = generateTentacleLinkTwoMatrix(4);
-      tentacle_01Link_02.setMatrix(t_01_l_02_Matrix);
-      tentacle_02Link_02.setMatrix(t_02_l_02_Matrix);
-      tentacle_03Link_02.setMatrix(t_03_l_02_Matrix);
-      tentacle_04Link_02.setMatrix(t_04_l_02_Matrix);
+      rotationOffsetLinkOne = 0;
+      rotationOffsetLinkTwo = 0;
+      updateFirstLink();
+      updateSecondLink();
+      onTheClock = false;
       // DEFAULT "T-POSE"
       break;
 
     case 1:
-      rotationOffset = 90;
-      t_01_l_02_Matrix = generateTentacleLinkTwoMatrix(1);
-      t_02_l_02_Matrix = generateTentacleLinkTwoMatrix(2);
-      t_03_l_02_Matrix = generateTentacleLinkTwoMatrix(3);
-      t_04_l_02_Matrix = generateTentacleLinkTwoMatrix(4);
-      tentacle_01Link_02.setMatrix(t_01_l_02_Matrix);
-      tentacle_02Link_02.setMatrix(t_02_l_02_Matrix);
-      tentacle_03Link_02.setMatrix(t_03_l_02_Matrix);
-      tentacle_04Link_02.setMatrix(t_04_l_02_Matrix);
+      rotationOffsetLinkOne = -45;
+      rotationOffsetLinkTwo = 90;
+      updateFirstLink();
+      updateSecondLink();
+      onTheClock = false;
       // SPIDER MODE
       break;
 
     case 2:
-
+      rotationOffsetLinkOne = 0;
+      rotationOffsetLinkTwo = 90;
+      updateFirstLink();
+      updateSecondLink();
+      onTheClock = false;
       break;
 
     //animation
-    case 3:
+    case 3:  
       {
+        if (!onTheClock) {
+          rotationOffsetLinkOne = 0;
+          rotationOffsetLinkTwo = 0;
+          old_T = clock.getElapsedTime();
+          updateFirstLink();
+          updateSecondLink();
+          onTheClock = true;
+        }
         var t = clock.getElapsedTime();
-
+        var delta_t = t - old_T;
+        if (delta_t < animThresh / 4.0) {
+          rotationOffsetLinkOne -= 3.0;
+          updateFirstLink();
+          updateSecondLink();
+        } else if (delta_t < animThresh / 2.0) {
+          rotationOffsetLinkTwo += 6.0;
+          updateSecondLink();
+        } else if (delta_t < (3.0 *animThresh / 4.0)) {
+          rotationOffsetLinkOne += 3.0;
+          updateFirstLink();
+          updateSecondLink();
+        } else if (delta_t < animThresh) {
+          rotationOffsetLinkTwo -= 6.0;
+          updateSecondLink();
+        }else {
+          onTheClock = false;
+        }
         //animate octopus here:
        
       }
 
       break;
+    case 4:
+      rotationOffsetLinkOne = 0;
+      rotationOffsetLinkTwo = 0;
+      //octopusMatrix.value.multiply(getCompositeRotation(0,1,0));
+      break;
     default:
       break;
   }
+  
+  
 }
 
 
@@ -506,7 +568,6 @@ function checkKeyboard() {
   {
     if (keyboard.pressed(i.toString()))
     {
-      console.log(i.toString());
       channel = i;
       break;
     }
