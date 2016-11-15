@@ -1,3 +1,3 @@
-Jacob Raphael Madrid
-48072128
-r6q8
+CPSC 314 2016W1 Assignment 2
+
+Don't steal or plagiarize? Provide credit, too.
